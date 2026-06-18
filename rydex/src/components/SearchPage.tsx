@@ -83,6 +83,8 @@ function SearchPage() {
                 <SearchMap
                     pickUp={pickUp}
                     drop={drop}
+                    initialP1={pickUpLat && pickUpLon ? [pickUpLat, pickUpLon] : undefined}
+                    initialP2={dropLat && dropLon ? [dropLat, dropLon] : undefined}
                     onChange={(p, d) => { setPickUp(p); setDrop(d) }}
                     onDistance={setKm}
                 />

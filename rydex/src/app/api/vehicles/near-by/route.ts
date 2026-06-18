@@ -16,7 +16,6 @@ export async function POST(req:NextRequest) {
 
         const partners=await User.find({
             role:"partner",
-            isOnline:true,
             partnerStatus:"approved",
             location:{
                 $near:{

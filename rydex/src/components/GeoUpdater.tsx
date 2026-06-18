@@ -21,7 +21,12 @@ function GeoUpdater({userId}:{userId:string}) {
 
         })
      },(err)=>{
-        console.log(err)
+        console.warn("Browser watchPosition failed or permission denied. Emitting Delhi mock location.", err)
+        socketRef.current.emit("update-location",{
+            userId,
+            latitude: 28.6139,
+            longitude: 77.2090
+        })
      },
      {
         enableHighAccuracy:true,

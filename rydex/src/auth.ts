@@ -51,18 +51,22 @@ Google({
   callbacks:{
     async signIn({user,account}){
       if(account?.provider=="google"){
-        await connectDb()
-        const dbUser=await User.findOne({email:user.email})
-        if(!dbUser){
-            await User.create({
-                name:user.name,
-                email:user.email
-            })
-        }
-    
-        user.id=dbUser._id
-        user.role=dbUser.role
+      await connectDb();
+      let dbUser=await User.findOne({email:user.email});
+      if(!dbUser){
+        // Create the user in the database and then retrieve it
+        await User.create({
+          name:user.name,
+          email:user.email,
+          // You may set a default role here if needed
+          role: "user"
+        });
+        dbUser=await User.findOne({email:user.email});
       }
+      // Assign the correct IDs and role to the NextAuth user object
+      user.id=String(dbUser._id);
+      user.role=dbUser.role;
+    }
 
       return true
     },

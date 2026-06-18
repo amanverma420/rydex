@@ -96,31 +96,91 @@ try {
     }
     setLoading(true)
 
-    const displayName=userData?.role=="admin"?"Admin":`${userData?.name} (${userData?.email})`
+    const displayName = userData?.role == "admin" ? "Admin" : `${userData?.name} (${userData?.email})`
     try {
       const appId = Number(process.env.NEXT_PUBLIC_ZEGO_APP_ID)
       const serverSecret = process.env.NEXT_PUBLIC_ZEGO_SERVER_SECRET
-      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
-        appId,
-        serverSecret!,
-        roomId?.toString()!,
-        userData?._id.toString()!,
-        displayName
-      )
+      
+      const isZegoConfigured = !isNaN(appId) && appId > 0 && serverSecret && serverSecret !== "add zegocloud server secret";
 
-      const zp = ZegoUIKitPrebuilt.create(kitToken)
-      zp.joinRoom({
-        container: containerRef.current,
-        scenario: {
-          mode: ZegoUIKitPrebuilt.OneONoneCall, // To implement 1-on-1 calls, modify the parameter 
-        },
-        showPreJoinView: false
+      if (isZegoConfigured) {
+        const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+          appId,
+          serverSecret!,
+          roomId?.toString()!,
+          userData?._id.toString()!,
+          displayName
+        )
 
-      });
+        const zp = ZegoUIKitPrebuilt.create(kitToken)
+        zp.joinRoom({
+          container: containerRef.current,
+          scenario: {
+            mode: ZegoUIKitPrebuilt.OneONoneCall, // To implement 1-on-1 calls, modify the parameter 
+          },
+          showPreJoinView: false
+        });
+      } else {
+        console.warn("ZegoCloud credentials not configured. Falling back to local KYC simulation.");
+        if (containerRef.current) {
+          containerRef.current.innerHTML = "";
+          
+          // Container grid for mock call
+          const grid = document.createElement("div");
+          grid.className = "w-full h-full grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-zinc-900";
+          
+          // Participant 1: Local camera stream or fallback
+          const col1 = document.createElement("div");
+          col1.className = "relative rounded-2xl overflow-hidden border border-white/10 bg-black flex items-center justify-center";
+          
+          if (stream) {
+            const videoElement = document.createElement("video");
+            videoElement.srcObject = stream;
+            videoElement.autoplay = true;
+            videoElement.playsInline = true;
+            videoElement.className = "w-full h-full object-cover scale-x-[-1]";
+            col1.appendChild(videoElement);
+          } else {
+            const placeholder = document.createElement("div");
+            placeholder.className = "text-center text-sm text-gray-500 p-4";
+            placeholder.innerHTML = `<p class="font-semibold text-white mb-2">Camera Unavailable</p><p class="text-xs text-gray-400">Webcam is blocked, in-use, or permission denied.</p>`;
+            col1.appendChild(placeholder);
+          }
+          
+          const label1 = document.createElement("div");
+          label1.className = "absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-full text-xs text-white backdrop-blur-sm";
+          label1.innerText = `${displayName} (You)`;
+          col1.appendChild(label1);
+          grid.appendChild(col1);
+
+          // Participant 2: Simulated other caller
+          const col2 = document.createElement("div");
+          col2.className = "relative rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 flex items-center justify-center";
+          
+          const centerText = document.createElement("div");
+          centerText.className = "text-center space-y-2";
+          
+          const avatarDot = document.createElement("div");
+          avatarDot.className = "w-20 h-20 rounded-full bg-zinc-800 mx-auto flex items-center justify-center text-2xl font-bold border border-white/10 animate-pulse text-zinc-300";
+          avatarDot.innerText = userData?.role === "admin" ? "P" : "A";
+          centerText.appendChild(avatarDot);
+
+          const statusText = document.createElement("div");
+          statusText.className = "text-sm text-gray-400";
+          statusText.innerText = userData?.role === "admin" ? "Partner Connecting..." : "Waiting for Admin...";
+          centerText.appendChild(statusText);
+          
+          col2.appendChild(centerText);
+          grid.appendChild(col2);
+
+          containerRef.current.appendChild(grid);
+        }
+      }
       setJoined(true)
       setLoading(false)
     } catch (error) {
       console.log(error)
+      setLoading(false)
     }
   }
   return (

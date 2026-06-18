@@ -9,9 +9,37 @@ import { MapPin, Navigation2 } from 'lucide-react'
 type props = {
   pickUp: string,
   drop: string,
+  initialP1?: [number, number],
+  initialP2?: [number, number],
   onChange: (p: string, d: string) => void,
   onDistance: (d: number) => void
 }
+
+type Place = {
+  id: string; 
+  name: string; 
+  city?: string; 
+  state?: string;
+  country?: string; 
+  countrycode?: string; 
+  lat: number; 
+  lng: number;
+};
+
+const MOCK_PLACES: Place[] = [
+  { id: "mock-1", name: "Connaught Place", city: "New Delhi", state: "Delhi", country: "India", countrycode: "in", lat: 28.6304, lng: 77.2177 },
+  { id: "mock-2", name: "Taj Mahal", city: "Agra", state: "Uttar Pradesh", country: "India", countrycode: "in", lat: 27.1751, lng: 78.0421 },
+  { id: "mock-3", name: "Gateway of India", city: "Mumbai", state: "Maharashtra", country: "India", countrycode: "in", lat: 18.9220, lng: 72.8347 },
+  { id: "mock-4", name: "Victoria Memorial", city: "Kolkata", state: "West Bengal", country: "India", countrycode: "in", lat: 22.5448, lng: 88.3426 },
+  { id: "mock-5", name: "Charminar", city: "Hyderabad", state: "Telangana", country: "India", countrycode: "in", lat: 17.3616, lng: 78.4747 },
+  { id: "mock-6", name: "Hawa Mahal", city: "Jaipur", state: "Rajasthan", country: "India", countrycode: "in", lat: 26.9239, lng: 75.8267 },
+  { id: "mock-7", name: "Kempfort Shiva Temple", city: "Bengaluru", state: "Karnataka", country: "India", countrycode: "in", lat: 12.9591, lng: 77.6562 },
+  { id: "mock-8", name: "Marina Beach", city: "Chennai", state: "Tamil Nadu", country: "India", countrycode: "in", lat: 13.0405, lng: 80.2824 },
+  { id: "mock-9", name: "India Gate", city: "New Delhi", state: "Delhi", country: "India", countrycode: "in", lat: 28.6129, lng: 77.2295 },
+  { id: "mock-10", name: "Qutub Minar", city: "New Delhi", state: "Delhi", country: "India", countrycode: "in", lat: 28.5245, lng: 77.1855 },
+  { id: "mock-11", name: "Udhampur", city: "Udhampur", state: "Jammu and Kashmir", country: "India", countrycode: "in", lat: 32.9264, lng: 75.1437 },
+  { id: "mock-12", name: "Majalta", city: "Udhampur", state: "Jammu and Kashmir", country: "India", countrycode: "in", lat: 32.7483, lng: 75.1425 }
+];
 
 function FitBounds({ p1, p2 }: { p1: [number, number], p2: [number, number] }) {
   const map = useMap()
@@ -70,47 +98,76 @@ const dropIcon = new L.DivIcon({
 
 
 
-function SearchMap({ pickUp, drop, onChange, onDistance }: props) {
+function SearchMap({ pickUp, drop, initialP1, initialP2, onChange, onDistance }: props) {
 
-  const [p1, setP1] = useState<[number, number]>()
-  const [p2, setP2] = useState<[number, number]>()
+  const [p1, setP1] = useState<[number, number] | undefined>(initialP1)
+  const [p2, setP2] = useState<[number, number] | undefined>(initialP2)
   const [route, setRoute] = useState<[number, number][]>([])
   const [km, setKm] = useState<number | null>(0)
   const [ready, setReady] = useState(false)
+
   const geoCoding = async (q: string): Promise<[number, number] | null> => {
     try {
       const { data } = await axios.get("https://api.geoapify.com/v1/geocode/autocomplete", {
-  params: {
-    text: q.trim(),
-    apiKey: process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY,
-    filter: "countrycode:in", // India ke liye fix
-    limit: 1
-  }
-})
-      if (!data.features.length) return null
+        params: {
+          text: q.trim(),
+          apiKey: process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY,
+          filter: "countrycode:in", // India ke liye fix
+          limit: 1
+        }
+      })
+      if (!data.features.length) throw new Error("No features returned")
       const [lon, lat] = data.features[0].geometry.coordinates
       return [lat, lon];
     } catch (error) {
-      console.log(error)
-      return null
+      console.warn("Geoapify autocomplete failed in SearchMap. Checking fallback.", error)
+      
+      // Parse coordinates out of name string if it matches coords format
+      if (q.includes("Current Location") || q.includes("Coordinate")) {
+        const matches = q.match(/\(([^,]+),\s*([^)]+)\)/);
+        if (matches && matches.length >= 3) {
+          const lat = parseFloat(matches[1]);
+          const lon = parseFloat(matches[2]);
+          if (!isNaN(lat) && !isNaN(lon)) {
+            return [lat, lon];
+          }
+        }
+      }
+
+      // Try searching in local static mock list
+      const query = q.toLowerCase();
+      const matched = MOCK_PLACES.find(p => 
+        p.name.toLowerCase().includes(query) || 
+        (p.city && p.city.toLowerCase().includes(query))
+      );
+      if (matched) {
+        return [matched.lat, matched.lng];
+      }
+
+      return [28.6139, 77.2090]; // Default fallback coordinate
     }
   }
 
   const reverseGeoCoding=async (lat:number,lon:number)=>{
-
-    const {data}=await axios.get("https://api.geoapify.com/v1/geocode/reverse",{
-          params:{
-            lat,
-            lon,
-            apiKey:process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY,
-            filter:"countrycode:in"
-          }
-        })
-        
-       if(!data.features.length)return;
-        const p=data.features[0].properties
-        return [p.name,p.street,p.city,p.state,p.country].filter(Boolean).join(",")
-
+    try {
+      const {data}=await axios.get("https://api.geoapify.com/v1/geocode/reverse",{
+        params:{
+          lat,
+          lon,
+          apiKey:process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY,
+          filter:"countrycode:in"
+        }
+      })
+      
+      if(!data.features || !data.features.length) {
+        return `Coordinate (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+      }
+      const p=data.features[0].properties
+      return [p.name,p.street,p.city,p.state,p.country].filter(Boolean).join(",")
+    } catch (error) {
+      console.warn("Geoapify reverse geocoding failed. Formatting coordinates locally.", error)
+      return `Coordinate (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+    }
   }
 
   const loadRoute = async (p: [number, number], d: [number, number]) => {
@@ -151,9 +208,16 @@ function SearchMap({ pickUp, drop, onChange, onDistance }: props) {
     setReady(false)
     if (pickUp && drop) {
       (async () => {
-        const a = await geoCoding(pickUp)
-        console.log(a)
-        const b = await geoCoding(drop)
+        let a = p1;
+        let b = p2;
+        
+        if (!a) {
+          a = await geoCoding(pickUp)
+        }
+        if (!b) {
+          b = await geoCoding(drop)
+        }
+        
         if (!a || !b) {
           return
         }
@@ -161,10 +225,7 @@ function SearchMap({ pickUp, drop, onChange, onDistance }: props) {
         setP1(a)
         setP2(b)
         setReady(true)
-
-
       })()
-
     }
   }, [pickUp, drop])
 
