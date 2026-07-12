@@ -22,6 +22,9 @@ const server=http.createServer(app)
 
 const allowedOrigins = [
     process.env.NEXT_BASE_URL,
+    process.env.NEXT_PUBLIC_SOCKET_SERVER_URL,
+    process.env.ALLOWED_ORIGIN,
+    process.env.ALLOWED_ORIGINS,
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
@@ -32,9 +35,14 @@ const allowedOrigins = [
     "http://127.0.0.1:3003"
 ].filter(Boolean);
 
+const corsOrigins = allowedOrigins.flatMap((origin) => {
+    if (!origin) return [];
+    return origin.split(',').map((item) => item.trim()).filter(Boolean);
+});
+
 const io=new Server(server,{
     cors:{
-        origin: allowedOrigins
+        origin: corsOrigins
     }
 })
 
