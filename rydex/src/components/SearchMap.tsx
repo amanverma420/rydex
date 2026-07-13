@@ -106,7 +106,7 @@ function SearchMap({ pickUp, drop, initialP1, initialP2, onChange, onDistance }:
   const [km, setKm] = useState<number | null>(0)
   const [ready, setReady] = useState(false)
 
-  const geoCoding = async (q: string): Promise<[number, number] | null> => {
+  const geoCoding = async (q: string): Promise<[number, number]> => {
     try {
       const { data } = await axios.get("https://api.geoapify.com/v1/geocode/autocomplete", {
         params: {
