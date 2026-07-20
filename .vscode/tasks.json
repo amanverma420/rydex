@@ -1,0 +1,38 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Generate PDFs",
+			"type": "shell",
+			"command": "./.venv/Scripts/python.exe",
+			"args": [
+				"docs/generate_pdfs.py"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Generate PDFs",
+			"type": "shell",
+			"command": "./.venv/Scripts/python.exe",
+			"args": [
+				"docs/generate_pdfs.py"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Generate PDFs",
+			"type": "shell",
+			"command": "./.venv/Scripts/python.exe",
+			"args": [
+				"docs/generate_pdfs.py"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

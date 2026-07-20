@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const MONGODB_URL = 'mongodb://localhost:27017/rydex';
+const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017/rydex';
 
 async function createUser() {
   console.log("Connecting to database...");

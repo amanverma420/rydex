@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const MONGODB_URL = 'mongodb://localhost:27017/rydex';
+const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017/rydex';
 
 async function setPartnerLive() {
   console.log("Connecting to database...");
